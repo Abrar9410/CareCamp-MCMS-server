@@ -7,10 +7,29 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const port = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// Middlewares
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true,
+    optionalSuccessStatus: 200,
+}));
 app.use(express.json());
 app.use(cookieParser());
+
+// Verify Token
+const verifyToken = (req, res, next) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access' });
+    }
+    jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'unauthorized access' });
+        }
+        req.user = decoded;
+    })
+    next();
+}
 
 
 
