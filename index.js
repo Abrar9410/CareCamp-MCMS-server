@@ -3,11 +3,14 @@ const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express();
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 
 
@@ -37,7 +40,7 @@ async function run() {
             const email = req.body;
             // create token
             const token = jwt.sign(email, process.env.SECRET_KEY, {
-                expiresIn: '365d',
+                expiresIn: '30d',
             });
             res
                 .cookie('token', token, {
