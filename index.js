@@ -27,6 +27,39 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
+
+        const database = client.db("CareCamp_DB");
+        const campCollection = database.createCollection("camps");
+        const userCollection = database.createCollection("users");
+
+        // generate jwt
+        app.post('/jwt', async (req, res) => {
+            const email = req.body;
+            // create token
+            const token = jwt.sign(email, process.env.SECRET_KEY, {
+                expiresIn: '365d',
+            });
+            res
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                })
+                .send({ success: true })
+        })
+
+        // logout || clear cookie from browser
+        app.get('/logout', async (req, res) => {
+            res
+                .clearCookie('token', {
+                    maxAge: 0,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                })
+                .send({ success: true })
+        })
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
