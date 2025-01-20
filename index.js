@@ -51,8 +51,8 @@ async function run() {
         await client.connect();
 
         const database = client.db("CareCamp_DB");
-        const campCollection = database.createCollection("camps");
-        const userCollection = database.createCollection("users");
+        const campCollection = database.collection("camps");
+        const userCollection = database.collection("users");
 
         // generate jwt
         app.post('/jwt', async (req, res) => {
@@ -79,6 +79,17 @@ async function run() {
                     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
                 })
                 .send({ success: true })
+        })
+
+        // Users related API
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            const email = user?.email;
+            const query = {email};
+            const exists = await userCollection.findOne(query);
+            if (exists) return res.send({message: "User already exists"});
+            const result = await userCollection.insertOne({...user, role: "user"});
+            res.send(result);
         })
 
 
