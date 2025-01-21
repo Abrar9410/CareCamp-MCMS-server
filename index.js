@@ -82,6 +82,24 @@ async function run() {
         })
 
         // Users related API
+
+        //GET API
+        app.get('/users/admin/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            if (email !== req.user.email) {
+                return res.status(403).send({message: 'forbidden access'})
+            };
+
+            const query = {email};
+            const user = await userCollection.findOne(query);
+            let admin = false;
+            if (user) {
+                admin = user.role === 'admin';
+            }
+            res.send({admin});
+        })
+
+        //POST API
         app.post('/users', async (req, res) => {
             const user = req.body;
             const email = user?.email;
