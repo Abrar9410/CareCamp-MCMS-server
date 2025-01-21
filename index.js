@@ -31,6 +31,18 @@ const verifyToken = (req, res, next) => {
     next();
 }
 
+// Verify Admin (after Verify Token)
+const verifyAdmin = async (req, res, next) => {
+    const email = req.user.email;
+    const query = { email };
+    const user = await userCollection.findOne(query);
+    const isAdmin = user?.role === 'admin';
+    if (!isAdmin) {
+        return  res.status(403).send({message: 'forbidden access'});
+    }
+    next();
+}
+
 
 
 
@@ -84,6 +96,11 @@ async function run() {
         // Users related API
 
         //GET API
+        app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result);
+        })
+
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             if (email !== req.user.email) {
