@@ -95,7 +95,7 @@ async function run() {
 
         // Users related API
 
-        //GET API
+        // GET API
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result);
@@ -116,7 +116,7 @@ async function run() {
             res.send({admin});
         })
 
-        //POST API
+        // POST API
         app.post('/users', async (req, res) => {
             const user = req.body;
             const email = user?.email;
@@ -125,6 +125,35 @@ async function run() {
             if (exists) return res.send({message: "User already exists"});
             const result = await userCollection.insertOne({...user, role: "user"});
             res.send(result);
+        })
+
+        // PATCH API
+        app.patch('/users/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            if (email !== req.user.email) {
+                return res.status(403).send({message: "forbidden access"});
+            }
+            const updatedUser = req.body;
+            const filter = {email};
+            if (updatedUser.photoURL) {
+                const updatedDoc = {
+                    $set: {
+                        name: updatedUser.displayName,
+                        image: updatedUser.photoURL
+                    }
+                };
+                const result = await userCollection.updateOne(filter, updatedDoc);
+                res.send(result);
+            }
+            else {
+                const updatedDoc = {
+                    $set: {
+                        name: updatedUser.displayName
+                    }
+                };
+                const result = await userCollection.updateOne(filter, updatedDoc);
+                res.send(result);
+            }
         })
 
 
