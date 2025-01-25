@@ -31,18 +31,6 @@ const verifyToken = (req, res, next) => {
     next();
 }
 
-// Verify Admin (after Verify Token)
-const verifyAdmin = async (req, res, next) => {
-    const email = req.user.email;
-    const query = { email };
-    const user = await userCollection.findOne(query);
-    const isAdmin = user?.role === 'admin';
-    if (!isAdmin) {
-        return  res.status(403).send({message: 'forbidden access'});
-    }
-    next();
-}
-
 
 
 
@@ -65,6 +53,20 @@ async function run() {
         const database = client.db("CareCamp_DB");
         const campCollection = database.collection("camps");
         const userCollection = database.collection("users");
+        const registeredCampCollection = database.collection("registered-camps");
+        const feedbackCollection = database.collection("feedbacks");
+
+        // Verify Admin (after Verify Token)
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.user.email;
+            const query = { email };
+            const user = await userCollection.findOne(query);
+            const isAdmin = user?.role === 'admin';
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+            next();
+        }
 
         // generate jwt
         app.post('/jwt', async (req, res) => {
@@ -154,6 +156,17 @@ async function run() {
                 const result = await userCollection.updateOne(filter, updatedDoc);
                 res.send(result);
             }
+        })
+
+        // Camps related API
+
+        // GET APIs
+
+        // POST APIs
+        app.post('/camps', verifyToken, verifyAdmin, async (req, res) => {
+            const camp = req.body;
+            const result = await campCollection.insertOne({...camp, participants: 0});
+            res.send(result);
         })
 
 
