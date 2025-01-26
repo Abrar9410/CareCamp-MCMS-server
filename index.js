@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
@@ -158,14 +158,69 @@ async function run() {
             }
         })
 
-        // Camps related API
+        // Camps related APIs
 
         // GET APIs
+        app.get('/camps', async (req, res) => {
+            const result = await campCollection.find().toArray() || [];
+            res.send(result);
+        })
 
-        // POST APIs
+        app.get('/camps/:campId', async (req, res) => {
+            const campId = req.params.campId;
+            const query = {_id: new ObjectId(campId)};
+            const result = await campCollection.findOne(query) || {};
+            res.send(result);
+        })
+
+        // POST API
         app.post('/camps', verifyToken, verifyAdmin, async (req, res) => {
             const camp = req.body;
             const result = await campCollection.insertOne({...camp, participants: 0});
+            res.send(result);
+        })
+
+        // PATCH API
+        app.patch('/update-camp/:campId', verifyToken, verifyAdmin, async (req, res) => {
+            const campId = req.params.campId;
+            const updatedCamp = req.body;
+            const filter = {_id: new ObjectId(campId)};
+            if (updatedCamp.thumbnail) {
+                const updatedDoc = {
+                    $set: {
+                        title: updatedCamp.title,
+                        thumbnail: updatedCamp.thumbnail,
+                        location: updatedCamp.location,
+                        date: updatedCamp.date,
+                        time: updatedCamp.time,
+                        fee: updatedCamp.fee,
+                        hpName: updatedCamp.hpName,
+                        description: updatedCamp.description
+                    }
+                };
+                const result = await campCollection.updateOne(filter, updatedDoc);
+                return res.send(result);
+            };
+            const updatedDoc = {
+                $set: {
+                    title: updatedCamp.title,
+                    location: updatedCamp.location,
+                    date: updatedCamp.date,
+                    time: updatedCamp.time,
+                    fee: updatedCamp.fee,
+                    hpName: updatedCamp.hpName,
+                    description: updatedCamp.description,
+                }
+            };
+            const result = await campCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+
+        // DELETE API 
+        app.delete('/delete-camp/:campId', verifyToken, verifyAdmin, async (req, res) => {
+            const campId = req.params.campId;
+            const query = {_id: new ObjectId(campId)};
+            const result = await campCollection.deleteOne(query);
             res.send(result);
         })
 
