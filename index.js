@@ -162,14 +162,28 @@ async function run() {
 
         // GET APIs
         app.get('/camps', async (req, res) => {
-            const result = await campCollection.find().toArray() || [];
+            const limit = parseInt(req.query.limit);
+            const search = req.query.search;
+            const query = {
+                $or: [
+                    {title: {$regex: search, $options: 'i'}},
+                    { location: {$regex: search, $options: 'i' }},
+                    { date: {$regex: search }},
+                ]
+            };
+            const cursor = campCollection.find(query);
+            if (limit) {
+                const result = await cursor.sort({ participants: -1 }).limit(limit).toArray();
+                return res.send(result);
+            }
+            const result = await cursor.toArray() || [];
             res.send(result);
         })
 
         app.get('/camps/:campId', async (req, res) => {
             const campId = req.params.campId;
             const query = {_id: new ObjectId(campId)};
-            const result = await campCollection.findOne(query) || {};
+            const result = await campCollection.findOne(query);
             res.send(result);
         })
 
