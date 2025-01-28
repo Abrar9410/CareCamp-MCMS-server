@@ -294,7 +294,7 @@ async function run() {
             if (email !== req.user.email) {
                 return res.status(403).send({ message: 'forbidden access' });
             };
-            const result = await registeredCampCollection.insertOne(registeredCamp);
+            const result = await registeredCampCollection.insertOne({...registeredCamp, paymentStatus: "Unpaid", confirmationStatus: "Pending"});
             const filter = { _id: new ObjectId(campId) };
             const updateCamp = {
                 $inc: { participants: 1 },
@@ -303,6 +303,32 @@ async function run() {
             if (campUpdateResult.modifiedCount>0) {
                 res.send(result);
             }
+        })
+
+        // PATCH API
+        app.patch('/registered-camps/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const filter = {_id: new ObjectId(id)};
+            const updatedDoc = {
+                $set: {confirmationStatus: "Confirmed"}
+            };
+            const result = await registeredCampCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+        
+        app.patch('/user-registered-camps/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const email = req.user.email;
+            const filter = {_id: new ObjectId(id)};
+            const desiredCamp = await registeredCampCollection.findOne(filter);
+            if (email !== desiredCamp.participant_Email) {
+                return res.status(403).send({ message: "Forbidden access" });
+            };
+            const updatedDoc = {
+                $set: {paymentStatus: "Paid"}
+            };
+            const result = await registeredCampCollection.updateOne(filter, updatedDoc);
+            res.send(result);
         })
 
         // DELETE API
