@@ -164,14 +164,20 @@ async function run() {
         app.get('/camps', async (req, res) => {
             const limit = parseInt(req.query.limit);
             const search = req.query.search;
+            const sort = req.query.sort;
+            let options = {};
+            if( sort === 'participants') options = {sort:{participants: -1}};
+            if( sort === 'fee') options = {sort:{fee: 1}};
+            if( sort === 'title') options = {sort:{title: 1}};
             const query = {
                 $or: [
                     {title: {$regex: search, $options: 'i'}},
                     { location: {$regex: search, $options: 'i' }},
                     { date: {$regex: search }},
+                    { hpName: {$regex: search, $options: 'i' }},
                 ]
             };
-            const cursor = campCollection.find(query);
+            const cursor = campCollection.find(query, options);
             if (limit) {
                 const result = await cursor.sort({ participants: -1 }).limit(limit).toArray();
                 return res.send(result);
@@ -240,6 +246,46 @@ async function run() {
 
         // Registered Camps APIs
 
+        // GET APIs
+        app.get('/registered-camps', verifyToken, verifyAdmin, async (req, res) => {
+            const search = req.query.search;
+            const query = {
+                $or: [
+                    { campName: { $regex: search, $options: 'i' } },
+                    { participant_Name: { $regex: search, $options: 'i' } },
+                    { paymentStatus: { $regex: search, $options: 'i' } },
+                    { confirmationStatus: { $regex: search, $options: 'i' } },
+                ]
+            };
+            const cursor = registeredCampCollection.find(query);
+            const result = await cursor.toArray() || [];
+            res.send(result);
+        })
+        
+        app.get('/user-registered-camps/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            if (email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' });
+            };
+            const search = req.query.search || '';
+            const query = {
+                $and: [
+                    { participant_Email: email }, // Ensure only the user's camps are fetched
+                    {
+                        $or: [
+                            { campName: { $regex: search, $options: 'i' } },
+                            { participant_Name: { $regex: search, $options: 'i' } },
+                            { paymentStatus: { $regex: search, $options: 'i' } },
+                            { confirmationStatus: { $regex: search, $options: 'i' } }
+                        ]
+                    }
+                ]
+            };
+            const cursor = registeredCampCollection.find(query);
+            const result = await cursor.toArray() || [];
+            res.send(result);
+        })
+
         // POST API
         app.post('/registered-camps', verifyToken, async (req,res) => {
             const registeredCamp = req.body;
@@ -257,6 +303,14 @@ async function run() {
             if (campUpdateResult.modifiedCount>0) {
                 res.send(result);
             }
+        })
+
+        // DELETE API
+        app.delete('/delete-registration/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await registeredCampCollection.deleteOne(query);
+            res.send(result);
         })
 
 
