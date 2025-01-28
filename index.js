@@ -312,6 +312,18 @@ async function run() {
             const result = await registeredCampCollection.deleteOne(query);
             res.send(result);
         })
+        
+        app.delete('/cancel-registration/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const email = req.user.email;
+            const query = {_id: new ObjectId(id)};
+            const desiredCamp = await registeredCampCollection.findOne(query);
+            if (email !== desiredCamp.participant_Email) {
+                return res.status(403).send({message: "Forbidden access"});
+            };
+            const result = await registeredCampCollection.deleteOne(query);
+            res.send(result);
+        })
 
 
         // Send a ping to confirm a successful connection
