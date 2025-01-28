@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 
 // Middlewares
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: ['http://localhost:5173', 'https://carecamp-mcms.netlify.app/', 'https://carecamp-mcms.netlify.app'],
     credentials: true,
     optionalSuccessStatus: 200,
 }));
@@ -106,7 +106,7 @@ async function run() {
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             if (email !== req.user.email) {
-                return res.status(403).send({message: 'forbidden access'})
+                return res.status(403).send({message: 'forbidden access'});
             };
 
             const query = {email};
@@ -236,6 +236,27 @@ async function run() {
             const query = {_id: new ObjectId(campId)};
             const result = await campCollection.deleteOne(query);
             res.send(result);
+        })
+
+        // Registered Camps APIs
+
+        // POST API
+        app.post('/registered-camps', verifyToken, async (req,res) => {
+            const registeredCamp = req.body;
+            const email = registeredCamp.participant_Email;
+            const campId = registeredCamp.campId;
+            if (email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' });
+            };
+            const result = await registeredCampCollection.insertOne(registeredCamp);
+            const filter = { _id: new ObjectId(campId) };
+            const updateCamp = {
+                $inc: { participants: 1 },
+            }
+            const campUpdateResult = await campCollection.updateOne(filter, updateCamp);
+            if (campUpdateResult.modifiedCount>0) {
+                res.send(result);
+            }
         })
 
 
