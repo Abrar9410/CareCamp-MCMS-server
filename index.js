@@ -55,6 +55,7 @@ async function run() {
         const userCollection = database.collection("users");
         const registeredCampCollection = database.collection("registered-camps");
         const feedbackCollection = database.collection("feedbacks");
+        const paymentCollection = database.collection("payments");
 
         // Verify Admin (after Verify Token)
         const verifyAdmin = async (req, res, next) => {
@@ -274,7 +275,7 @@ async function run() {
                     {
                         $or: [
                             { campName: { $regex: search, $options: 'i' } },
-                            { participant_Name: { $regex: search, $options: 'i' } },
+                            { location: { $regex: search, $options: 'i' } },
                             { paymentStatus: { $regex: search, $options: 'i' } },
                             { confirmationStatus: { $regex: search, $options: 'i' } }
                         ]
@@ -283,6 +284,14 @@ async function run() {
             };
             const cursor = registeredCampCollection.find(query);
             const result = await cursor.toArray() || [];
+            res.send(result);
+        })
+        
+        
+        app.get('/user-registered-camp/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const filter = {_id: new ObjectId(id)};
+            const result = await registeredCampCollection.findOne(filter);
             res.send(result);
         })
 
@@ -315,21 +324,6 @@ async function run() {
             const result = await registeredCampCollection.updateOne(filter, updatedDoc);
             res.send(result);
         })
-        
-        app.patch('/user-registered-camps/:id', verifyToken, async (req, res) => {
-            const id = req.params.id;
-            const email = req.user.email;
-            const filter = {_id: new ObjectId(id)};
-            const desiredCamp = await registeredCampCollection.findOne(filter);
-            if (email !== desiredCamp.participant_Email) {
-                return res.status(403).send({ message: "Forbidden access" });
-            };
-            const updatedDoc = {
-                $set: {paymentStatus: "Paid"}
-            };
-            const result = await registeredCampCollection.updateOne(filter, updatedDoc);
-            res.send(result);
-        })
 
         // DELETE API
         app.delete('/delete-registration/:id', verifyToken, verifyAdmin, async (req, res) => {
@@ -349,6 +343,38 @@ async function run() {
             };
             const result = await registeredCampCollection.deleteOne(query);
             res.send(result);
+        })
+
+        // Payment related APIs
+
+        // GET API
+
+        // POST API
+        app.post('/payment/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const email = req.user.email;
+            const payment = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const desiredCamp = await registeredCampCollection.findOne(filter);
+            if (email !== payment.email || email !== desiredCamp?.participant_Email) {
+                return res.status(403).send({ message: "Forbidden access" });
+            };
+            const result = await paymentCollection.insertOne(payment);
+            if (result.insertedId) {
+                const updatedDoc = {
+                    $set: { paymentStatus: "Paid" }
+                };
+                const updateResult = await registeredCampCollection.updateOne(filter, updatedDoc);
+                if (updateResult.modifiedCount > 0) {
+                    res.send(result);
+                }
+                else {
+                    res.send({ message: "Unfortunate Error! Payment status could not be updated! Contact Admin immediately." })
+                }
+            }
+            else {
+                res.send({ message: "An error occurred!" })
+            }
         })
 
 
