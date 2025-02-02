@@ -393,6 +393,33 @@ async function run() {
             }
         })
 
+        // Feedback related APIs
+
+        // GET API
+
+        // POST API
+        app.post('/feedbacks', verifyToken, async (req, res) => {
+            const feedback = req.body;
+            const email = feedback.participant_Email;
+            if (email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' });
+            };
+            const query = {campId: feedback.campId, participant_Email: feedback.participant_Email};
+            const existingFeedback = await feedbackCollection.findOne(query);
+            if (existingFeedback) {
+                const updatedFeedback = {
+                    $set: {
+                        rating: feedback.rating,
+                        detailFeedback: feedback.detailFeedback
+                    }
+                };
+                const updateResult = await feedbackCollection.updateOne(query, updatedFeedback);
+                return res.send(updateResult);
+            }
+            const result = await feedbackCollection.insertOne(feedback);
+            res.send(result);
+        })
+
 
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
