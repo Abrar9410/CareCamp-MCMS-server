@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // Middlewares
@@ -350,6 +351,21 @@ async function run() {
         // GET API
 
         // POST API
+        app.post('/create-payment-intent', verifyToken, async (req, res) => {
+            const payment = req.body;
+            const amount = parseInt(payment.fee * 100);
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ["card"]
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
+
         app.post('/payment/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const email = req.user.email;
