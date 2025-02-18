@@ -349,6 +349,29 @@ async function run() {
         // Payment related APIs
 
         // GET API
+        app.get('/payment-history/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            const search = req.query.search;
+            if (email !== req.user.email) {
+                return res.status(403).send({ message: "Forbidden access" });
+            };
+            const query = {
+                $and: [
+                    { email: email }, // Ensure only the user's camps are fetched
+                    {
+                        $or: [
+                            { registeredCampName: { $regex: search, $options: 'i' } },
+                            { location: { $regex: search, $options: 'i' } },
+                            { hpName: { $regex: search, $options: 'i' } },
+                            { date_time: { $regex: search } },
+                            { transactionId: { $regex: search } }
+                        ]
+                    }
+                ]
+            };
+            const result = await paymentCollection.find(query).sort({date_time: -1}).toArray() || [];
+            res.send(result);
+        })
 
         // POST API
         app.post('/create-payment-intent', verifyToken, async (req, res) => {
