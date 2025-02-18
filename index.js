@@ -396,6 +396,10 @@ async function run() {
         // Feedback related APIs
 
         // GET API
+        app.get('/feedbacks', async (req, res) => {
+            const result = await feedbackCollection.find().toArray() || [];
+            res.send(result);
+        })
 
         // POST API
         app.post('/feedbacks', verifyToken, async (req, res) => {
