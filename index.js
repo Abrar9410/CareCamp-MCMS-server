@@ -167,6 +167,14 @@ async function run() {
             }
         })
 
+        // DELETE API
+        app.delete('/delete-user/:userId', verifyToken, verifyAdmin, async (req, res) => {
+            const userId = req.params.userId;
+            const query = { _id: new ObjectId(userId) };
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
+        })
+
         // Camps related APIs
 
         // GET APIs
