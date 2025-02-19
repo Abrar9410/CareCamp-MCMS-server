@@ -101,7 +101,14 @@ async function run() {
 
         // GET API
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
-            const result = await userCollection.find().toArray();
+            const search = req.query.search;
+            const query = {
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ]
+            };
+            const result = await userCollection.find(query).toArray();
             res.send(result);
         })
 
@@ -351,7 +358,7 @@ async function run() {
         // GET API
         app.get('/payment-history/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
-            const search = req.query.search;
+            const search = req.query.search || '';
             if (email !== req.user.email) {
                 return res.status(403).send({ message: "Forbidden access" });
             };
